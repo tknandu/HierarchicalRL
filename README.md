@@ -1,2 +1,2 @@
 # HierarchicalRL
-Option Learning using PCCA+
+Option Learning using PCCA+ (Latest)
