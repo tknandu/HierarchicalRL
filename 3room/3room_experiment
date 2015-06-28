@@ -1,0 +1,2 @@
+#! /bin/bash
+  PYTHONPATH=../external/python-codec/src/ python ./src/experiment.py 
