@@ -71,7 +71,7 @@ class MarioAgent(Agent):
         self.trial_start = 0.0
         self.total_steps = 0
         self.step_number = 0
-        self.exp = 0.75 #Exploration factor
+        self.exp = 0.75 # Exploration factor, reset from param
         self.substrate_mode = False
         if (self.substrate_mode):
             self.state_dim_x = 33
@@ -85,37 +85,29 @@ class MarioAgent(Agent):
         random.seed(0)
         
         self.Q = Deep_QNN(nactions=12, input_size=(self.state_dim_x*self.state_dim_y), max_experiences=500, gamma=0.6, alpha=0.2)
-        self.T = TNN(input_size= 4, max_experiences=500, alpha=0.2)
+
+        #####
+        self.regularization_constant = 0.4 # For rewards incorporated into transition structure
+        self.episodesRun = 1000 # This is just used to generate the file names of the stored data
+        ######
 
         self.discretization_done = False
-        self.n_bins = 1000
-        self.n_hidden_layer_outputs = 1
         self.n_disc_states = math.pow((self.n_bins + 3),self.n_hidden_layer_outputs)
-#        self.phi_mat = np.zeros((self.n_disc_states,12,self.n_disc_states),dtype=int)
-#        self.U_mat = np.zeros((self.n_disc_states,12,self.n_disc_states),dtype=float)
         self.phi_mat = {}
         self.U_mat = {}
-
-        self.regularization_constant = 0.4 #For rewards incorporated into transition structure
-        self.episodesRun = 1000 #This is just used to generate the file names of the stored data
-
-        #The (probably) incorrect U_mat that Peeyush writes in his algo
-#        self.Peey_U_mat = np.zeros((self.n_disc_states,12,self.n_disc_states),dtype=float)
-        self.Peey_U_mat = {}
-
+        self.Peey_U_mat = {} # The (probably) incorrect U_mat that Peeyush writes in his algo
+        self.seen_expanded_states = {} # A dictionary of all the non-approximated (original Mario input) states that were seen.
         self.last_enc_state = None
         self.last_enc_action = None
-
-        self.seen_expanded_states = {} #A dictionary of all the non-approximated (original Mario input) states that were seen.
 
         #####################################################################
 
         # Obtain T & P matrices
 
-        self.optionLearningPhase = True 
-
+        self.optionLearningPhase = True
         self.using_compressed_mats = False #Set true if we're ignoring discretized states that aren't visited
         self.using_sparse = True
+
         if self.optionLearningPhase:
             if self.using_compressed_mats:
                 tmatfile = open('comp_noreward_t_mat' + str(self.episodesRun) + '.dat','r')
@@ -125,6 +117,7 @@ class MarioAgent(Agent):
                 tmatfile = open('noreward_t_mat' + str(self.episodesRun) + '.dat','r')
             unpickler = pickle.Unpickler(tmatfile)
             self.t_mat = unpickler.load()
+
             if self.using_compressed_mats:
                 pmatfile = open('comp_noreward_p_mat' + str(self.episodesRun) + '.dat','r')
             elif self.using_sparse:
@@ -133,6 +126,7 @@ class MarioAgent(Agent):
                 pmatfile = open('noreward_p_mat' + str(self.episodesRun) + '.dat','r')
             unpickler = pickle.Unpickler(pmatfile)
             self.p_mat = unpickler.load()
+
             if self.using_compressed_mats:
                 validstatesfile = open('comp_valid_states'+str(self.episodesRun)+'.dat','r') 
                 unpickler = pickle.Unpickler(validstatesfile)
@@ -157,8 +151,6 @@ class MarioAgent(Agent):
             for (row_i,row) in enumerate(self.chi_mat):
                 self.absStateMembership.append(row.argmax())
                 self.statesInAbsState[row.argmax()].append(row_i)
-
-#        self.valid_states =  NOT NECESSARY IN MARIO
 
             self.connect_mat = self.chi_mat.T*self.t_mat*self.chi_mat
 
@@ -354,21 +346,7 @@ class MarioAgent(Agent):
                     self.Peey_U_mat[self.last_disc_state][self.last_enc_action][disc_state] = self.phi_mat[self.last_disc_state][self.last_enc_action][disc_state]*math.exp(-self.regularization_constant*abs(reward))
                 else:
                     self.Peey_U_mat[self.last_disc_state][self.last_enc_action][disc_state] += self.phi_mat[self.last_disc_state][self.last_enc_action][disc_state]*math.exp(-self.regularization_constant*abs(reward))
- 
- 
-#            self.U_mat[self.last_disc_state][self.last_enc_action][disc_state] += math.exp(-self.regularization_constant*abs(reward))
-#            self.Peey_U_mat[self.last_disc_state][self.last_enc_action][disc_state] += self.phi_mat[self.last_disc_state][self.last_enc_action][disc_state]*math.exp(-self.regularization_constant*abs(reward))
-            """
-            if disc_state not in self.:
-                self.transition_matrix[disc_state] = {}
-            if self.disc_enc_action:
-                if self.last_enc_action not in self.transition_matrix[self.last_enc_state]:
-                    self.transition_matrix[self.last_enc_state][self.last_enc_action] = {enc_state:1}
-                elif enc_state not in self.transition_matrix[self.last_enc_state][self.last_enc_action]:
-                    self.transition_matrix[self.last_enc_state][self.last_enc_action][enc_state] = 1
-                else:
-                    self.transition_matrix[self.last_enc_state][self.last_enc_action][enc_state] += 1
-            """
+
             self.last_enc_state = enc_state
             self.last_enc_action = enc_action
             self.last_disc_state = disc_state
@@ -456,22 +434,9 @@ class MarioAgent(Agent):
             return "message understood, option learning frozen"    
         if inMessage.startswith("unfreeze_option_learning"):
             self.option_learning_frozen=False
-            self.loadBinsFromDumpFiles()
-            return "message understood, option learning unfrozen"   
-        if inMessage.startswith("train_TNN"):
-            print 'Training TNN'
-            self.trainTNN()
-        if inMessage.startswith("savetransmatrix"):
-            splitString=inMessage.split(" ")
-            self.saveTprobs(splitString[1])
-            print "Saved.";
-            return "message understood, saving Tprobs"
-        if inMessage.startswith("loadtransmatrix"):
-            splitString=inMessage.split(" ")
-            self.loadTprobs(splitString[1])
-            print "Loaded.";
-            return "message understood, loading Tprobs"
-        if inMessage.startswith("save_state_reps"): #Save the tuples corresponding to each state.
+
+        # Save the tuples corresponding to each state.
+        if inMessage.startswith("save_state_reps"):
             enc_states = []
             print len(self.seen_expanded_states.keys())
             for state in self.seen_expanded_states.keys():
@@ -480,8 +445,8 @@ class MarioAgent(Agent):
             outfile = open(splitstring[1],'w')
             pickle.dump(enc_states,outfile)
 
-        #Once we have frozen our state reps, this function discretizes them and populates the self.secondColBins and self.thirdColBins arrays
-        if inMessage.startswith("get_bins_from_state_reps"):
+        # Once we have frozen our state reps, this function discretizes them and populates the self.colBins
+        if inMessage.startswith("save_bins_from_state_reps"):
             enc_states = []
             for state in self.seen_expanded_states.keys():
                 curr_rep = tuple(self.Q.getHiddenLayerRepresentation(list(state)))
@@ -498,8 +463,15 @@ class MarioAgent(Agent):
             splitstring = inMessage.split()
             outfile = open(splitstring[1],'w')
             pickle.dump(self.colBins,outfile)
-
             self.discretization_done = True
+
+        if inMessage.startswith("get_bins_from_state_reps"):
+            splitstring = inMessage.split()
+            secondcolfile = open(splitstring[1],'r')
+            unpickler = pickle.Unpickler(secondcolfile)
+            self.colBins = unpickler.load()
+            self.discretization_done = True
+            return "message understood, loading discretiztion"
 
         if inMessage.startswith("save_phi"):
             splitstring = inMessage.split()
@@ -513,29 +485,39 @@ class MarioAgent(Agent):
             pickle.dump(self.Peey_U_mat,puoutfile)
 
         if inMessage.startswith("load_vf"):
-            theFile = open('valuefunction1000.dat', "r")
+            splitstring = inMessage.split()
+            theFile = open('valuefunction'+str(splitstring[1])+'.dat', "r")
             self.value_function = pickle.load(theFile)
             theFile.close()
-
         if inMessage.startswith("save_vf"):
-            vffile = open('valuefunction1000.dat','w')
+            vffile = open('valuefunction'+str(splitstring[1])+'.dat', "w")
             pickle.dump(self.value_function,vffile)
             vffile.close()
+
+        if inMessage.startswith("freeze_trajectory"):
+            self.trajectory_frozen=True
+            return "message understood, trajectory learning frozen"
+        if inMessage.startswith("unfreeze_trajectory"):
+            self.trajectory_frozen=False
+            return "message understood, trajectory learning unfrozen"
+
+        if inMessage.startswith("set_n_bins"):
+            splitstring = inMessage.split()
+            self.n_bins = int(splitstring[1])
+            return "message understood, no of bins set"
+
+        if inMessage.startswith("set_n_hidden_layer_nodes"):
+            splitstring = inMessage.split()
+            self.n_hidden_layer_outputs = int(splitstring[1])
+            return "message understood, no of hidden layer nodes set"
 
         return None
 
 
-    def loadBinsFromDumpFiles(self):
-        secondcolfile = open('colbins' + str(self.episodesRun) + '.dat','r')
-        unpickler = pickle.Unpickler(secondcolfile)
-        self.colBins = unpickler.load()
-
-
-    #Get the discretized states. Assumes that the bins are available.
+    # Get the discretized states. Assumes that the bins are available.
     def getDiscretizedState(self,enc_state):
         
         disc_tuple = []
-
         for i in range(0,len(enc_state)-1):
             curr_elem = enc_state[i+1][0]
             disc_tuple.append(np.digitize([curr_elem],self.colBins[i])[0])
@@ -547,7 +529,6 @@ class MarioAgent(Agent):
         for elem in disc_tuple:
             flat_disc_state += elem*mult
             mult *= (self.n_bins+3)
-#        print flat_disc_state
         if self.using_compressed_mats or self.using_sparse:
             try:
                 return self.valid_states.index(flat_disc_state) 
@@ -765,7 +746,9 @@ class MarioAgent(Agent):
         self.Q = pickle.load(theFile)
         theFile.close()
 
-    # Added now
+    '''
+    Redundant below
+    '''
     def train_TNN(self):
         for s1 in self.transition_probs:
             for a in self.transition_probs[s1]:
