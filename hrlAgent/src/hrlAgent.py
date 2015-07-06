@@ -88,7 +88,7 @@ class MarioAgent(Agent):
 
         #####
         self.regularization_constant = 0.4 # For rewards incorporated into transition structure
-        self.episodesRun = 1000 # This is just used to generate the file names of the stored data
+        self.episodesRun = 100000 # This is just used to generate the file names of the stored data to be read in
         ######
 
         self.discretization_done = False
@@ -102,28 +102,13 @@ class MarioAgent(Agent):
 
         #####################################################################
 
-        # Obtain T & P matrices
-
-        self.optionLearningPhase = True
-        self.using_compressed_mats = False #Set true if we're ignoring discretized states that aren't visited
-        self.using_sparse = True
-
-        if self.optionLearningPhase:
-            if self.using_compressed_mats:
-                tmatfile = open('comp_noreward_t_mat' + str(self.episodesRun) + '.dat','r')
-            elif self.using_sparse:
-                tmatfile = open('sparse_t_mat' + str(self.episodesRun) + '.dat','r')
-            else:
-                tmatfile = open('noreward_t_mat' + str(self.episodesRun) + '.dat','r')
+        if self.option_learning_frozen==False:
+            # Obtain T & P matrices
+            tmatfile = open('t_mat' + str(self.episodesRun) + '.dat','r')
             unpickler = pickle.Unpickler(tmatfile)
             self.t_mat = unpickler.load()
 
-            if self.using_compressed_mats:
-                pmatfile = open('comp_noreward_p_mat' + str(self.episodesRun) + '.dat','r')
-            elif self.using_sparse:
-                pmatfile = open('sparse_p_mat' + str(self.episodesRun) + '.dat','r')
-            else:
-                pmatfile = open('noreward_p_mat' + str(self.episodesRun) + '.dat','r')
+            pmatfile = open('p_mat' + str(self.episodesRun) + '.dat','r')
             unpickler = pickle.Unpickler(pmatfile)
             self.p_mat = unpickler.load()
 
@@ -471,7 +456,7 @@ class MarioAgent(Agent):
             unpickler = pickle.Unpickler(secondcolfile)
             self.colBins = unpickler.load()
             self.discretization_done = True
-            return "message understood, loading discretiztion"
+            return "message understood, loading discretization"
 
         if inMessage.startswith("save_phi"):
             splitstring = inMessage.split()
@@ -495,10 +480,10 @@ class MarioAgent(Agent):
             vffile.close()
 
         if inMessage.startswith("freeze_trajectory"):
-            self.trajectory_frozen=True
+            self.trajectory_learning_frozen=True
             return "message understood, trajectory learning frozen"
         if inMessage.startswith("unfreeze_trajectory"):
-            self.trajectory_frozen=False
+            self.trajectory_learning_frozen=False
             return "message understood, trajectory learning unfrozen"
 
         if inMessage.startswith("set_n_bins"):
