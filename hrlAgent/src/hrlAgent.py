@@ -452,8 +452,8 @@ class MarioAgent(Agent):
 
         if inMessage.startswith("get_bins_from_state_reps"):
             splitstring = inMessage.split()
-            secondcolfile = open(splitstring[1],'r')
-            unpickler = pickle.Unpickler(secondcolfile)
+            colfile = open(splitstring[1],'r')
+            unpickler = pickle.Unpickler(colfile)
             self.colBins = unpickler.load()
             self.discretization_done = True
             return "message understood, loading discretization"
