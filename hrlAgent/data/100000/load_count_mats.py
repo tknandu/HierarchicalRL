@@ -2,18 +2,18 @@ import pickle
 import numpy as np
 import sys
 
-n_eps = 1000
+n_eps = 100000
 if len(sys.argv) > 1 and sys.argv[1].startswith("sparse"):
 
-    f = open('sparse_phi_mat' + str(n_eps) + '.dat','r')
+    f = open('phi_mat' + str(n_eps) + '.dat','r')
     unpickler = pickle.Unpickler(f)
     phi_mat = unpickler.load()
 
-    f = open('sparse_u_mat' + str(n_eps) + '.dat','r')
+    f = open('u_mat' + str(n_eps) + '.dat','r')
     unpickler = pickle.Unpickler(f)
     u_mat = unpickler.load()
 
-    f = open('sparse_peeyush_u_mat' + str(n_eps) + '.dat','r')
+    f = open('peeyush_u_mat' + str(n_eps) + '.dat','r')
     unpickler = pickle.Unpickler(f)
     pu_mat = unpickler.load()
 
