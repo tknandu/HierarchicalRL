@@ -91,6 +91,10 @@ class MarioAgent(Agent):
         self.episodesRun = 100000 # This is just used to generate the file names of the stored data to be read in
         ######
 
+        self.n_bins = 1000 # filled in from experiment.py
+        self.n_hidden_layer_outputs = 1 # filled in from experiment.py
+        self.option_learning_frozen = True # filled in from experiment.py
+
         self.discretization_done = False
         self.n_disc_states = math.pow((self.n_bins + 3),self.n_hidden_layer_outputs)
         self.phi_mat = {}

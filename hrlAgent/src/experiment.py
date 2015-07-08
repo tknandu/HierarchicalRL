@@ -247,7 +247,7 @@ def main():
     instance - 0..9, determines which Mario you run.    
     '''
     whichTrainingMDP = 0
-    loadMario(True, True, 3, 0, 1, whichTrainingMDP)
+    loadMario(False, False, 3, 0, 1, whichTrainingMDP)
     RLGlue.RL_init()
     RLGlue.RL_agent_message("set_n_bins "+str(n_bins))
     RLGlue.RL_agent_message("set_n_hidden_layer_nodes "+str(n_hidden_layer_nodes))
