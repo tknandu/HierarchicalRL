@@ -102,6 +102,7 @@ class MarioAgent(Agent):
 
         #####################################################################
 
+        # When learning to play with options
         if self.option_learning_frozen==False:
             # Obtain T & P matrices
             tmatfile = open('t_mat' + str(self.episodesRun) + '.dat','r')
@@ -112,14 +113,9 @@ class MarioAgent(Agent):
             unpickler = pickle.Unpickler(pmatfile)
             self.p_mat = unpickler.load()
 
-            if self.using_compressed_mats:
-                validstatesfile = open('comp_valid_states'+str(self.episodesRun)+'.dat','r') 
-                unpickler = pickle.Unpickler(validstatesfile)
-                self.valid_states = unpickler.load()
-            if self.using_sparse:
-                validstatesfile = open('sparse_valid_states'+str(self.episodesRun)+'.dat','r') 
-                unpickler = pickle.Unpickler(validstatesfile)
-                self.valid_states = unpickler.load()
+            validstatesfile = open('valid_states'+str(self.episodesRun)+'.dat','r')
+            unpickler = pickle.Unpickler(validstatesfile)
+            self.valid_states = unpickler.load()
 
             # Run PCCA to obtain Chi matrix
             self.clusterer = PCCA(True)
@@ -223,14 +219,22 @@ class MarioAgent(Agent):
                 if self.last_disc_state not in self.Peey_U_mat:
                     self.Peey_U_mat[self.last_disc_state] = {}
 
-
         # When using QNN
         if self.policy_frozen == False:
             self.seen_expanded_states[tuple(self.stateEncoder(observation))] = True
             act = self.getAction(observation)
 
+        # When extracting trajectories to fit MSM
+        if self.trajectory_learning_frozen == False:
+            act = self.getAction(observation)
+            if self.discretization_done:
+                enc_state = tuple(self.Q.getHiddenLayerRepresentation(self.stateEncoder(observation)))
+                self.last_disc_state = self.getDiscretizedState(enc_state)
+                self.last_enc_action = self.actionEncoder(act)
+            print 'Trajectory: '+str(self.last_disc_state)+',',
+
         self.last_action = copy.deepcopy(act)
-        self.last_state  = copy.deepcopy(observation)    
+        self.last_state  = copy.deepcopy(observation)
 
         return act
  
@@ -342,6 +346,14 @@ class MarioAgent(Agent):
             self.seen_expanded_states[tuple(self.stateEncoder(observation))] = True
             self.update(observation, act, reward)
 
+        # When extracting trajectories to fit MSM
+        if self.trajectory_learning_frozen == False:
+            act = self.getAction(observation)
+            enc_state = tuple(self.Q.getHiddenLayerRepresentation(self.stateEncoder(observation)))
+            self.last_disc_state = self.getDiscretizedState(enc_state)
+            self.last_enc_action = self.actionEncoder(act)
+            print str(self.last_disc_state)+',',
+
         self.last_action = copy.deepcopy(act)
         self.last_state  = copy.deepcopy(observation)    
 
@@ -369,6 +381,9 @@ class MarioAgent(Agent):
                 new_Q_sa=Q_sa + self.q_stepsize  * (reward - Q_sa)
                 self.value_function[lastState][lastAction]=new_Q_sa
 
+        # When extracting trajectories to fit MSM
+        if self.trajectory_learning_frozen == False:
+            print ''
 
     def agent_cleanup(self):
         pass
@@ -514,7 +529,7 @@ class MarioAgent(Agent):
         for elem in disc_tuple:
             flat_disc_state += elem*mult
             mult *= (self.n_bins+3)
-        if self.using_compressed_mats or self.using_sparse:
+        if self.option_learning_frozen==False:
             try:
                 return self.valid_states.index(flat_disc_state) 
             except ValueError:

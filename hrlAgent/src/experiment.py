@@ -9,7 +9,7 @@ from consoleTrainerHelper import *
 import pickle
 import numpy as np
 
-#Utility function
+# Utility function
 def loadCountMats(episodesTrainedOn):
 
     n_eps = episodesTrainedOn
@@ -36,7 +36,7 @@ def loadCountMats(episodesTrainedOn):
     f = open('valid_states' + str(n_eps) + '.dat','w')
     pickle.dump(valid_states,f)
 
-#Using the matrices from page 39 of thesis
+    # Using the matrices from page 39 of thesis
     d_mat = np.zeros((n_valid_states,n_valid_states),dtype=float)
     for (i_1,state_1) in enumerate(valid_states):
         for (i_2,state_2) in enumerate(valid_states):
@@ -59,7 +59,7 @@ def loadCountMats(episodesTrainedOn):
                     if state_2 in u_mat[state_1][action]:
                         total += u_mat[state_1][action][state_2]
                 if total == 0:
-                    p_mat[i_1][action][i_1] = 1 #If we have no transitions for (s_1,a), then set p(s_1,a,s_1) to 1 and let the others be 0
+                    p_mat[i_1][action][i_1] = 1 # If we have no transitions for (s_1,a), then set p(s_1,a,s_1) to 1 and let the others be 0
                 else:
                     for (i_2,state_2) in enumerate(valid_states):
                         if state_2 in u_mat[state_1][action]:
@@ -155,8 +155,6 @@ def getTrajectories(episodesTrainedOn, episodesToRun):
     RLGlue.RL_agent_message("unfreeze_trajectory")
     RLGlue.RL_agent_message("load_policy qfun"+str(episodesTrainedOn)+".dat")
     RLGlue.RL_agent_message("get_bins_from_state_reps colbins"+str(episodesTrainedOn)+".dat")
-
-    loadCountMats(episodesTrainedOn)
 
     exp = 1.0 # reset exp
     for i in range(episodesToRun):
@@ -261,9 +259,10 @@ def main():
 #    trainQNetwork(episodesToTrain)
 #    learnTransitionProb(episodesToTrain)
 
-#    getTrajectories(episodesToTrain,episodesToRun)
+#   loadCountMats(episodesToTrain)
+    getTrajectories(episodesToTrain,episodesToRun)
 
-    #optionPlay(episodesToTrain, episodesToRun)
+#    optionPlay(episodesToTrain, episodesToRun)
 
     RLGlue.RL_cleanup()
 
