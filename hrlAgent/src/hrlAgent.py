@@ -16,6 +16,7 @@ import copy
 from operator import itemgetter
 import scipy.sparse
 import bisect
+import csv
 
 class Monster:
     def __init__(self):
@@ -185,9 +186,9 @@ class MarioAgent(Agent):
             self.curentOptionStartState = state
             self.currentOptionReward = 0.0
 
-                # 1. Find the abstract state you belong to & going to
-            self.option_S_i = self.absStateMembership[state] # initiation step
-            self.option_S_j = a-self.numActions # actually, we will have to choose S_j based on SMDP
+            # 1. Find the abstract state you belong to & going to
+            self.option_S_i = self.absStateMembership[state]  # initiation step
+            self.option_S_j = a-self.numActions  # actually, we will have to choose S_j based on SMDP
 
             # 2. Choose action based on membership ascent
             thisIntAction = self.posGradientAction(state)
@@ -230,12 +231,8 @@ class MarioAgent(Agent):
 
         # When extracting trajectories to fit MSM
         if self.trajectory_learning_frozen == False:
+            self.seen_expanded_states[tuple(self.stateEncoder(observation))] = True
             act = self.getAction(observation)
-            if self.discretization_done:
-                enc_state = tuple(self.Q.getHiddenLayerRepresentation(self.stateEncoder(observation)))
-                self.last_disc_state = self.getDiscretizedState(enc_state)
-                self.last_enc_action = self.actionEncoder(act)
-            print 'Trajectory: '+str(self.last_disc_state)+',',
 
         self.last_action = copy.deepcopy(act)
         self.last_state  = copy.deepcopy(observation)
@@ -353,10 +350,7 @@ class MarioAgent(Agent):
         # When extracting trajectories to fit MSM
         if self.trajectory_learning_frozen == False:
             act = self.getAction(observation)
-            enc_state = tuple(self.Q.getHiddenLayerRepresentation(self.stateEncoder(observation)))
-            self.last_disc_state = self.getDiscretizedState(enc_state)
-            self.last_enc_action = self.actionEncoder(act)
-            print str(self.last_disc_state)+',',
+            self.seen_expanded_states[tuple(self.stateEncoder(observation))] = True
 
         self.last_action = copy.deepcopy(act)
         self.last_state  = copy.deepcopy(observation)    
@@ -394,7 +388,22 @@ class MarioAgent(Agent):
     
     def agent_freeze(self):
         pass
-    
+
+    def convertToBinary(self,state):
+        binaryState = []
+        for feature in state:
+            if feature==-2:
+                binaryState.extend([0,1,1])
+            elif feature==-1:
+                binaryState.extend([0,1,0])
+            elif feature==0:
+                binaryState.extend([0,0,0])
+            elif feature==1:
+                binaryState.extend([1,0,0])
+            else:
+                binaryState.extend([1,0,1])
+        return binaryState
+
     def agent_message(self,inMessage):
         if inMessage.startswith("freeze_learning"):
             self.policy_frozen=True
@@ -442,12 +451,21 @@ class MarioAgent(Agent):
         # Save the tuples corresponding to each state.
         if inMessage.startswith("save_state_reps"):
             enc_states = []
-            print len(self.seen_expanded_states.keys())
+            print 'Total number of distinct states seen: ',len(self.seen_expanded_states.keys())
             for state in self.seen_expanded_states.keys():
                 enc_states.append(tuple(self.Q.getHiddenLayerRepresentation(list(state))))
             splitstring = inMessage.split()
             outfile = open(splitstring[1],'w')
             pickle.dump(enc_states,outfile)
+
+        # Save the tuples corresponding to each Mario state seen, used by autoencoder
+        if inMessage.startswith("save_seen_states"):
+            print 'Total number of distinct states seen: ',len(self.seen_expanded_states.keys())
+            splitstring = inMessage.split()
+            with open(splitstring[1],'w') as out:
+                csv_out = csv.writer(out)
+                for state in self.seen_expanded_states.keys():
+                    csv_out.writerow(tuple(self.convertToBinary(list(state))))
 
         # Once we have frozen our state reps, this function discretizes them and populates the self.colBins
         if inMessage.startswith("save_bins_from_state_reps"):
@@ -516,7 +534,6 @@ class MarioAgent(Agent):
             return "message understood, no of hidden layer nodes set"
 
         return None
-
 
     # Get the discretized states. Assumes that the bins are available.
     def getDiscretizedState(self,enc_state):

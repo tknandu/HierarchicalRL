@@ -154,7 +154,6 @@ def getTrajectories(episodesTrainedOn, episodesToRun):
     RLGlue.RL_agent_message("freeze_option_learning")
     RLGlue.RL_agent_message("unfreeze_trajectory")
     RLGlue.RL_agent_message("load_policy qfun"+str(episodesTrainedOn)+".dat")
-    RLGlue.RL_agent_message("get_bins_from_state_reps colbins"+str(episodesTrainedOn)+".dat")
 
     exp = 1.0 # reset exp
     for i in range(episodesToRun):
@@ -167,6 +166,8 @@ def getTrajectories(episodesTrainedOn, episodesToRun):
         print "Total steps in episode %d is %fd" %(i, thisSteps)
         thisReturn = RLGlue.RL_return()
         print "Total return in episode %d is %f" %(i, thisReturn)
+
+    RLGlue.RL_agent_message("save_seen_states states_seen"+str(episodesToRun)+".csv")
 
 #####################################################################################################################
 
@@ -233,7 +234,7 @@ def testAgent():
 def main():
 
     episodesToTrain = 100000
-    episodesToRun = 100
+    episodesToRun = 100000
     n_bins = 1000
     n_hidden_layer_nodes = 1
 
@@ -247,7 +248,7 @@ def main():
     instance - 0..9, determines which Mario you run.    
     '''
     whichTrainingMDP = 0
-    loadMario(False, False, 3, 0, 1, whichTrainingMDP)
+    loadMario(True, True, 3, 0, 1, whichTrainingMDP)
     RLGlue.RL_init()
     RLGlue.RL_agent_message("set_n_bins "+str(n_bins))
     RLGlue.RL_agent_message("set_n_hidden_layer_nodes "+str(n_hidden_layer_nodes))
