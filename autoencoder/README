@@ -1,0 +1,14 @@
+# Autoencoder
+
+Learns a mapping from a higher dimensional binary representation to a lower dimensional binary representation.
+Usage:
+
+python dA.py [train-file] [num-epochs] [batch-size] [output-prefix]
+
+train-file:
+Should be a comma-separated file, with samples in rows and features in columns. The loss function is designed considering the features to be binary. 
+
+Final error:
+5 dimensions, 20 batch size - 150.889 cost
+2 dimensions, 20 batch size - 158.878 cost
+1 dimensions, 20 batch size - 200.614 cost
